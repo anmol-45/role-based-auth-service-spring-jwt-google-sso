@@ -18,6 +18,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.UUID;
 
 
 @Service
@@ -129,10 +131,55 @@ public class AuthService {
         authResponse.setToken(accessToken);
         authResponse.setName(user.getFirstName() + " " + user.getLastName());
         return new ResponseEntity<>(authResponse , HttpStatus.ACCEPTED);
-
-
-
-
-
     }
+
+
+    public ResponseEntity<?> checkGoogleLogin(String email, String name) {
+        logger.info("Processing Google login for email: {}", email);
+
+        User user = userRepo.findByEmail(email);
+
+        if (user == null) {
+            logger.info("No user found with email: {}, creating a new one", email);
+
+            Admin userFromAdminDb = null;
+            try {
+                userFromAdminDb = adminRepo.getByEmail(email);
+            } catch (Exception e) {
+                logger.error("Failed to fetch admin from DB for email: {}", email, e);
+            }
+
+            String[] nameArray = name.split(" ");
+            String firstName = nameArray.length > 0 ? nameArray[0] : "";
+            String lastName = nameArray.length > 1 ? nameArray[1] : "";
+
+            User userForDb = new User();
+            userForDb.setRole(userFromAdminDb == null ? "student" : userFromAdminDb.getRole());
+            userForDb.setEmail(email);
+            userForDb.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+            userForDb.setFirstName(firstName);
+            userForDb.setLastName(lastName);
+            userForDb.setCreatedAt(LocalDateTime.now());
+
+            try {
+                userRepo.save(userForDb);
+                logger.info("User registered successfully: {}", email);
+                return new ResponseEntity<>("User registered successfully", HttpStatus.CREATED);
+            } catch (Exception e) {
+                logger.error("Error while saving user to DB: {}", email, e);
+                return new ResponseEntity<>("Internal Server Error while saving user", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } else {
+            logger.info("User exists, generating token for: {}", email);
+            String accessToken = jwtUtil.generateToken(email, user.getRole());
+
+            AuthResponse authResponse = new AuthResponse();
+            authResponse.setRole(user.getRole());
+            authResponse.setToken(accessToken);
+            authResponse.setName(user.getFirstName() + " " + user.getLastName());
+
+            return new ResponseEntity<>(authResponse, HttpStatus.ACCEPTED);
+        }
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.authentication.app.controllers;
 
+import com.authentication.app.entities.Admin;
 import com.authentication.app.entities.User;
 import com.authentication.app.services.UserServiceImpl.AdminServiceImpl;
 import com.authentication.app.services.UserServiceImpl.StudentServiceImpl;
@@ -83,5 +84,19 @@ public class UserController {
             log.error("Error fetching admin details: {}", e.getMessage());
             return ResponseEntity.internalServerError().body(e.getMessage());
         }
+    }
+
+    @PostMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> saveAdminDetails(@RequestBody Admin adminUser) {
+        log.info("Fetching admin details to save in db: {}", adminUser);
+
+        if (!UserValidation.isEmailValid(adminUser.getEmail())) {
+            log.warn("Invalid email format: {}", adminUser.getEmail());
+            return ResponseEntity.badRequest().body("Invalid email format");
+        }
+
+        return adminService.saveDetails(adminUser);
+
     }
 }
