@@ -36,6 +36,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                 //allow all requests under  auth without authentication
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/googleAuth/**").permitAll()
                         .requestMatchers("/api/v1/user/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/user/teacher/**").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers("/api/v1/user/student/**").hasAnyRole("STUDENT", "TEACHER", "ADMIN")
